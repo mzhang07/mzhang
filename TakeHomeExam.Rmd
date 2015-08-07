@@ -1,0 +1,103 @@
+---
+title: "Take Home Exam"
+author: "Michael Zhang"
+output: word_document
+---
+#Book Problems
+
+##Chapter 2, #10
+a)
+```{r}
+library(MASS)
+```
+There are 506 rows and 14 columns. The rows represent observations (housing values in Boston suburbs), and the columns contain features (e.g. median house value, per capita crime rate, etc.).
+
+b)
+```{r}
+pairs(Boston)
+```
+We see a fairly strong negative correlation between lstat and medv. We also see a fairly strong positive correlation between rm and medv and a similarly negative correlation between rm and lstat. Additionally, we see a negative correlation between dis and lstat. There are other correlations between the predictors, but these are some of the strongest that we see from the pairwise scatterplots.
+
+c)
+```{r}
+plot(Boston$age, Boston$crim)
+plot(Boston$dis, Boston$crim)
+plot(Boston$rad, Boston$crim)
+plot(Boston$tax, Boston$crim)
+plot(Boston$ptratio, Boston$crim)
+```
+Yes, there are predictors associated with crime rate. 
+* The older the home, the more crime
+* The farther away from Boston employment centers, the less crime
+* The more accessible to radial highways, the more crime
+* The higher the property tax, the more crime
+* The higher the student-teacher ratio, the more crime
+
+d)
+```{r}
+hist(Boston$crim, 25)
+median(Boston$crim)
+range(Boston$crim)
+quantile(Boston$crim, 0.95)
+
+hist(Boston$tax, 25)
+median(Boston$tax)
+range(Boston$tax)
+
+hist(Boston$ptratio, 25)
+```
+Yes, the median crime rate is 0.26, but the crime rate ranges from 0.01 to 88.98. Most cities have low crime rates, and the 5% of suburbs with the highest crime rate have crime rates larger than 15.78.
+
+Tax rate is similar in that the median tax rate is 330, but there is a big jump between suburbs with lower tax rates and suburbs with tax rates higher than 650.
+
+The pupil-teacher ratio distribution among the suburbs is pretty evenly distributed with the exception of a peak of suburbs with a pupil-teacher ratio of ~20.
+
+e)
+```{r}
+sum(Boston$chas)
+```
+35 surburbs out of 506 bound the Charles River
+
+f)
+```{r}
+median(Boston$ptratio)
+```
+The median pupil-teacher ratio is 19.05.
+
+g)
+```{r}
+subset(Boston, medv == min(Boston$medv))
+highlight <- function(x, value, col.value, col=NA, ...){
+   hst <- hist(x, ...)
+   idx <- findInterval(value, hst$breaks)
+   cols <- rep(col, length(hst$counts))
+   cols[idx] <- col.value
+   hist(x, col=cols, ...)
+}
+highlight(Boston$crim, Boston$crim[Boston$medv == min(Boston$medv)], "red")
+highlight(Boston$zn, Boston$zn[Boston$medv == min(Boston$medv)], "red")
+highlight(Boston$indus, Boston$indus[Boston$medv == min(Boston$medv)], "red")
+highlight(Boston$chas, Boston$chas[Boston$medv == min(Boston$medv)], "red")
+highlight(Boston$nox, Boston$nox[Boston$medv == min(Boston$medv)], "red")
+highlight(Boston$rm, Boston$rm[Boston$medv == min(Boston$medv)], "red")
+highlight(Boston$age, Boston$age[Boston$medv == min(Boston$medv)], "red")
+highlight(Boston$dis, Boston$dis[Boston$medv == min(Boston$medv)], "red")
+highlight(Boston$rad, Boston$rad[Boston$medv == min(Boston$medv)], "red")
+highlight(Boston$tax, Boston$tax[Boston$medv == min(Boston$medv)], "red")
+highlight(Boston$ptratio, Boston$ptratio[Boston$medv == min(Boston$medv)], "red")
+highlight(Boston$black, Boston$black[Boston$medv == min(Boston$medv)], "red")
+highlight(Boston$lstat, Boston$lstat[Boston$medv == min(Boston$medv)], "red")
+```
+High crime, low proportion of large lots, large proportion of non-retail business, not bound by Charles River, larger nitrogen oxide concentration, oldest homes, closest to employment centers, most accessible to radial highways, higher property taxes, higher student-teacher ratios, higher proportion of blacks, and higher proportion of lower status. 
+
+```{r}
+nrow(subset(Boston, rm > 7))
+nrow(subset(Boston, rm > 8))
+summary(subset(Boston, rm > 8))
+summary(Boston)
+```
+There are 64 suburbs with more than 7 rooms per dwelling, and 13 suburbs with more than 8 rooms per dwelling. 
+
+The suburbs with more than 8 rooms per dwelling have less crime, higher median value, and lower lstat.
+
+##Chapter 3, #15

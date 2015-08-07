@@ -1,0 +1,11 @@
+---
+title: "Homework 1"
+author: "Michael Zhang"
+output: pdf_document
+---
+
+#Exploratory Analysis
+Issues:
+1) Whether voting on certain kinds of voting equipment lead to higher rates of undercount
+2) If so, whether we should worry that this effect has a disparate impact on poor and minority communities
+
