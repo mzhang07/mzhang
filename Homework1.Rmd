@@ -1,11 +1,318 @@
 ---
 title: "Homework 1"
 author: "Michael Zhang"
-output: pdf_document
+output: word_document
 ---
 
 #Exploratory Analysis
-Issues:
+Let's take a look at Georgia's county-level voting data from the 2000 presidential election and investigate vote undercount.
+
+Specifically, let's examine the below issues:
 1) Whether voting on certain kinds of voting equipment lead to higher rates of undercount
 2) If so, whether we should worry that this effect has a disparate impact on poor and minority communities
 
+```{r}
+georgia <- read.csv("../data/georgia2000.csv", row.names=1)
+
+georgia$undercountpct <- 1 - georgia$votes/georgia$ballots
+georgia$undercount <- georgia$ballots - georgia$votes
+
+boxplot(undercountpct~equip, data = georgia, main = "Voting Equipment Undercount %", xlab = "Voting Equipment", ylab = "Undercount %")
+
+boxplot(undercount~equip, data = georgia, main = "Voting Equipment Undercounted Votes", xlab = "Voting Equipment", ylab = "Undercounted Votes")
+```
+
+Looking at these boxplots, we see that the undercount % is fairly consistent across voting equipments. However, when we look at undercounted votes as a number, there are two counties with a large number of undercounted votes, and both of these counties used "Punch" equipment.
+
+```{r}
+aggregate(georgia[, 4], list(georgia$equip), mean)
+aggregate(georgia[, 7], list(georgia$equip), mean)
+
+boxplot(perAA~equip, data = georgia, main = "African-American % vs. Voting Equipment", xlab = "Voting Equipment", ylab = "African-American %")
+
+boxplot(poor~equip, data = georgia, main = "Poor vs. Voting Equipment", xlab = "Voting Equipment", ylab = "Poor")
+```
+
+When we look at the boxplots and means for African-American % and Poor vs. Voting Equipment, we do not see a disproportionate representation of these two variables in counties using "Punch" equipment.
+
+Therefore, while there may be slight variations in vote undercounting among voting equipment, we should not worry that this effect has a disparate impact on poor and minority communities.
+
+#Bootstrapping
+Considering the below five asset classes:
+
+* US domestic equities (SPY: the S&P 500 stock index)
+* US Treasury bonds (TLT)
+* Investment-grade corporate bonds (LQD)
+* Emerging-market equities (EEM)
+* Real estate (VNQ)
+
+Let's take a look at the risk/return properties. To estimate variability, we use CAPM and standard deviations.
+
+```{r}
+library(mosaic)
+library(fImport)
+library(foreach)
+etfs = c("SPY", "TLT", "LQD", "EEM", "VNQ")
+etfprices = yahooSeries(etfs, from='2010-01-01', to='2015-07-30')
+
+# A helper function for calculating percent returns from a Yahoo Series
+YahooPricesToReturns = function(series) {
+	mycols = grep('Adj.Close', colnames(series))
+	closingprice = series[,mycols]
+	N = nrow(closingprice)
+	percentreturn = as.data.frame(closingprice[2:N,]) / as.data.frame(closingprice[1:(N-1),]) - 1
+	mynames = strsplit(colnames(percentreturn), '.', fixed=TRUE)
+	mynames = lapply(mynames, function(x) return(paste0(x[1], ".PctReturn")))
+	colnames(percentreturn) = mynames
+	as.matrix(na.omit(percentreturn))
+}
+
+# Compute the returns from the closing prices
+etfreturns = YahooPricesToReturns(etfprices)
+
+# Standard deviations of the asset classes
+sigma_SPY = sd(etfreturns[,1])
+sigma_TLT = sd(etfreturns[,2])
+sigma_LQD = sd(etfreturns[,3])
+sigma_EEM = sd(etfreturns[,4])
+sigma_VNQ = sd(etfreturns[,5])
+
+# First fit the market model to each asset class
+lm_TLT = lm(etfreturns[,2] ~ etfreturns[,1])
+lm_LQD = lm(etfreturns[,3] ~ etfreturns[,1])
+lm_EEM = lm(etfreturns[,4] ~ etfreturns[,1])
+lm_VNQ = lm(etfreturns[,5] ~ etfreturns[,1])
+
+# The estimated beta for each asset class based on daily returns
+coef(lm_TLT); coef(lm_LQD); coef(lm_EEM); coef(lm_VNQ)
+
+# The standard deviations for each asset class based on daily returns
+sigma_SPY; sigma_TLT; sigma_LQD; sigma_EEM; sigma_VNQ
+```
+
+From the CAPM, we see that both treasury bonds (TLT) and investment-grade corporate bonds (LQD) have slightly negative betas, meaning that they tend to go down when the market goes up, and vice versa. This means that the expected return on these investments is less than the riskfree rate. We also see that emerging-market equities (EEM) is more volatile than the total market. Finally, real estate (VNQ) follows the market closely and can be considered a representative stock.
+
+Looking at the standard deviations, we rank the asset classes in order of least volatile to most volatile:
+1) LQD
+2) TLT
+3) SPY
+4) VNQ
+5) EEM
+
+What if we consider these asset classes together in a single portfolio?
+
+First, let's assume an even split (20% of assets in each of the five ETFs above).
+
+```{r}
+n_days = 20
+
+set.seed(2015)
+
+sim_equal_dist = foreach(i=1:5000, .combine='rbind') %do% {
+	totalwealth = 100000
+	weights = c(0.2, 0.2, 0.2, 0.2, 0.2)
+	holdings = weights * totalwealth
+	wealthtracker = rep(0, n_days) # Set up a placeholder to track total wealth
+	for(today in 1:n_days) {
+	  return.today = resample(etfreturns, 1, orig.ids=FALSE)
+		holdings = holdings + holdings*return.today
+		totalwealth = sum(holdings)
+		holdings = weights * totalwealth
+		wealthtracker[today] = totalwealth
+	}
+	wealthtracker
+}
+
+hist(sim_equal_dist[,n_days], 25)
+
+# Profit/loss
+hist(sim_equal_dist[,n_days]- 100000)
+
+# Calculate 5% value at risk
+abs(quantile(sim_equal_dist[,n_days], 0.05) - 100000)
+```
+
+We see that the value at risk (VaR) at the 5% level for this portfolio is $3,772. In other words, we can say with a 95% confidence level that the most money this portfolio will lose over a 4-week trading period is $3,772.
+
+What if we want a portfolio that's "safer"? Let's allocate more of the portfolio to LQD and TLT and remove EEM.
+
+Let's take a look at the VaR associated with this portfolio.
+
+```{r}
+set.seed(2015)
+
+sim_safe = foreach(i=1:5000, .combine='rbind') %do% {
+	totalwealth = 100000
+	weights = c(0.4, 0.3, 0.25, 0, 0.05)
+	holdings = weights * totalwealth
+	wealthtracker = rep(0, n_days) # Set up a placeholder to track total wealth
+	for(today in 1:n_days) {
+	  return.today = resample(etfreturns, 1, orig.ids=FALSE)
+		holdings = holdings + holdings*return.today
+		totalwealth = sum(holdings)
+		holdings = weights * totalwealth
+		wealthtracker[today] = totalwealth
+	}
+	wealthtracker
+}
+
+hist(sim_safe[,n_days], 25)
+
+# Profit/loss
+hist(sim_safe[,n_days]- 100000)
+
+# Calculate 5% value at risk
+abs(quantile(sim_safe[,n_days], 0.05) - 100000)
+```
+
+With this "safer" allocation, the VaR at the 5% level is $2,202. What about a portfolio that's considered more "aggreesive"? Let's allocate the portfolio to only include SPY and EEM, with 70% weight on EEM.
+
+```{r}
+set.seed(2015)
+
+sim_aggressive = foreach(i=1:5000, .combine='rbind') %do% {
+	totalwealth = 100000
+	weights = c(0.3, 0, 0, 0.7, 0)
+	holdings = weights * totalwealth
+	wealthtracker = rep(0, n_days) # Set up a placeholder to track total wealth
+	for(today in 1:n_days) {
+	  return.today = resample(etfreturns, 1, orig.ids=FALSE)
+		holdings = holdings + holdings*return.today
+		totalwealth = sum(holdings)
+		holdings = weights * totalwealth
+		wealthtracker[today] = totalwealth
+	}
+	wealthtracker
+}
+
+hist(sim_aggressive[,n_days], 25)
+
+# Profit/loss
+hist(sim_aggressive[,n_days]- 100000)
+
+# Calculate 5% value at risk
+abs(quantile(sim_aggressive[,n_days], 0.05) - 100000)
+```
+
+Now, our VaR is much higher: $8,681. 
+
+So what does this all mean? Well, depending on your risk tolerance, one of these portfolios is more preferable than the other two. 
+
+```{r}
+# Profit/loss
+hist(sim_aggressive[,n_days]- 100000)
+hist(sim_safe[,n_days]- 100000)
+hist(sim_equal_dist[,n_days]- 100000)
+
+quantile(sim_aggressive[,n_days], 0.025); quantile(sim_aggressive[,n_days], 0.975)
+quantile(sim_safe[,n_days], 0.025); quantile(sim_safe[,n_days], 0.975)
+quantile(sim_equal_dist[,n_days], 0.025); quantile(sim_equal_dist[,n_days], 0.975)
+```
+
+Taking a look at the 90% confidence intervals for each of these portfolios, we see that in the span of a 4-week trading period, the value of...
+* the aggressive portfolio can range from as little as $89,674 to as large as $111,942
+* the safe portfolio can range from as little as $97,043 to as large as $104,677
+* the equally distributed portfolio can range from as little as $95,286 to as large as $106,459
+
+Which would you choose?
+
+#Clustering and PCA
+We have a dataset of 6,500 different bottles of vinho verde wine from Portugal that contains information on 11 chemical properties for each wine, whether the wine is red or white, and the quality score of the wine. 
+
+Let's run PCA and a clustering algorithm on this dataset to see what we can learn.
+
+```{r}
+library(ggplot2)
+vinho_full <- read.csv("../data/wine.csv")
+vinho = vinho_full[,(1:11)]
+
+# Running PCA, basic plotting and summary methods
+pca_vinho = prcomp(vinho, scale = TRUE)
+
+pca_vinho
+summary(pca_vinho)
+sum((pca_vinho$sdev)^2)
+plot(pca_vinho)
+biplot(pca_vinho)
+```
+
+Can we use PCA to distinguish reds from whites? What about to sort the higher from the lower quality wines?
+
+```{r}
+# Looking to see if the first two principal components can distinguish reds from whites and sort higher from lower quality wines
+loadings = pca_vinho$rotation
+scores = pca_vinho$x
+qplot(scores[,1], scores[,2], color=vinho_full$color, xlab='Component 1', ylab='Component 2')
+qplot(scores[,1], scores[,2], color=vinho_full$quality, xlab='Component 1', ylab='Component 2')
+```
+
+It looks like we can distinguish reds from whites pretty well, but not higher quality from lower quality.
+
+Now, let's run k-means clustering on the dataset, and see if we can use this method to distinguish reds from whites. 
+
+```{r}
+# K-means clustering
+vinho_scaled <- scale(vinho)
+vinho_cluster_2 <- kmeans(vinho_scaled, centers=2, nstart=50)
+
+qplot(volatile.acidity, sulphates, data=vinho_full, color=factor(vinho_cluster_2$cluster))
+color_table = table(vinho_full$color, vinho_cluster_2$cluster)
+prop.table(color_table, margin = 1)
+```
+
+It does! What about distinguishing quality?
+
+```{r}
+vinho_cluster_3 <- kmeans(vinho_scaled, centers=3, nstart=50)
+
+quality_table = table (vinho_cluster_3$cluster, vinho_full$quality)
+prop.table(quality_table, margin = 1)
+```
+
+Oh no, not at all. The three clusters are not very helpful in terms of distinguishing different quality wines.
+
+For this data, using k-means clustering with k = 2 makes more sense than PCA because we are trying to group the wines into 2 clusters (red and white), and we are able to successfully do so. 98.5% of the red wines are in Cluster 1, and 98.6% of the white wines are Cluster 2. However, we can consider using PCA before clustering.
+
+#Market Segmentation
+Given social media conversation data gathered from the followers of "NutrientH20," let's take a look at the data and try to identify any interesting market segments. What can we do with these market segments? We can use them to better tailor the social content strategy to engage with the Nutrient H20 community. 
+
+```{r}
+tweets <- read.csv("../data/social_marketing.csv", row.names=1)
+
+tweetsdf <- as.data.frame(tweets)
+
+tweetsdf_clean <- tweetsdf[,-c(1, 4, 5, 35, 36)]
+tweetsdf_clean_scaled <- scale(tweetsdf_clean)
+
+tweet_clusters <- kmeans(tweetsdf_clean_scaled, centers=6, nstart=50)
+
+mu = attr(tweetsdf_clean_scaled,"scaled:center")
+sigma = attr(tweetsdf_clean_scaled,"scaled:scale")
+
+colSums(tweetsdf)
+
+#Multi-faceted
+rbind(tweet_clusters$centers[1,],tweet_clusters$centers[1,]* sigma + mu)
+#Outdoorsy health nuts
+rbind(tweet_clusters$centers[2,],tweet_clusters$centers[2,]* sigma + mu)
+#College students and online gamers
+rbind(tweet_clusters$centers[3,],tweet_clusters$centers[3,]* sigma + mu)
+#Political and news-interested travelers
+rbind(tweet_clusters$centers[4,],tweet_clusters$centers[4,]* sigma + mu)
+#Fashionistas
+rbind(tweet_clusters$centers[5,],tweet_clusters$centers[5,]* sigma + mu)
+#Family first, religion and sports second
+rbind(tweet_clusters$centers[6,],tweet_clusters$centers[6,]* sigma + mu)
+
+tweet_clusters$size
+```
+
+After removing some prevalent and not very informative conversation topics such as chatter, photo sharing, spam, etc and running k-means clustering with a k of 6, we some interesting segments of the Nutrient H20 followers.
+
+For example, 11% of the followers are in the "Outdoorsy Health Nuts" cluster, meaning that they enjoy talking about fitness, health, and the outdoors. This is not too surprising given the probable target market for H20, but clustering quantifies the proportion of its followers that are especially into these topics--the "health nuts." 
+
+Given that health/nutrition is the top conversation category (besides photo sharing and chatter), there is strong evidence that social content with a health/nutrition/fitness focus would resonate well with the Nutrient H20 community. For example, Nutrient H20 could post some healthy recipes or workout routines on their social platforms.
+
+Additionally, we see 10% of the followers fall into the "Family First, Religion and Sports Second" cluster. These individuals enjoy participating in social conversation about family-oriented topics like parenting, school, religion, and food. They can also be classified as sports fans. Knowing this, we can envision a mom or dad who is constantly juggling work, raising a family, and enjoying watching sports. Nutrient H20 can offer value by delivering social content that highlights the role of the product in a hectic lifestyle both for parents and their children.
+
+One way we could improve this analysis is to include follower counts for each individual in the analysis. This way, we could identify influentials (those with high follower counts) that Nutrient H20 could leverage as brand advocates. This is a great first step though.
