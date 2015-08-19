@@ -6,98 +6,245 @@ output: word_document
 #Book Problems
 
 ##Chapter 2, #10
-a)
-```{r}
-library(MASS)
-```
-There are 506 rows and 14 columns. The rows represent observations (housing values in Boston suburbs), and the columns contain features (e.g. median house value, per capita crime rate, etc.).
+a) There are 506 rows and 14 columns. The rows represent observations (housing values in Boston suburbs), and the columns contain features (e.g. median house value, per capita crime rate, etc.).
 
 b)
-```{r}
+```{r, echo = FALSE}
+library(MASS)
+attach(Boston)
 pairs(Boston)
 ```
 We see a fairly strong negative correlation between lstat and medv. We also see a fairly strong positive correlation between rm and medv and a similarly negative correlation between rm and lstat. Additionally, we see a negative correlation between dis and lstat. There are other correlations between the predictors, but these are some of the strongest that we see from the pairwise scatterplots.
 
-c)
-```{r}
-plot(Boston$age, Boston$crim)
-plot(Boston$dis, Boston$crim)
-plot(Boston$rad, Boston$crim)
-plot(Boston$tax, Boston$crim)
-plot(Boston$ptratio, Boston$crim)
-```
-Yes, there are predictors associated with crime rate. 
+c) Yes, there are predictors associated with crime rate. 
 * The older the home, the more crime
 * The farther away from Boston employment centers, the less crime
 * The more accessible to radial highways, the more crime
 * The higher the property tax, the more crime
 * The higher the student-teacher ratio, the more crime
 
-d)
-```{r}
-hist(Boston$crim, 25)
-median(Boston$crim)
-range(Boston$crim)
-quantile(Boston$crim, 0.95)
-
-hist(Boston$tax, 25)
-median(Boston$tax)
-range(Boston$tax)
-
-hist(Boston$ptratio, 25)
-```
-Yes, the median crime rate is 0.26, but the crime rate ranges from 0.01 to 88.98. Most cities have low crime rates, and the 5% of suburbs with the highest crime rate have crime rates larger than 15.78.
+d) Yes, the median crime rate is 0.26, but the crime rate ranges from 0.01 to 88.98. Most cities have low crime rates, and the 5% of suburbs with the highest crime rate have crime rates larger than 15.78.
 
 Tax rate is similar in that the median tax rate is 330, but there is a big jump between suburbs with lower tax rates and suburbs with tax rates higher than 650.
 
 The pupil-teacher ratio distribution among the suburbs is pretty evenly distributed with the exception of a peak of suburbs with a pupil-teacher ratio of ~20.
 
-e)
-```{r}
-sum(Boston$chas)
-```
-35 surburbs out of 506 bound the Charles River
+e) 35 surburbs out of 506 bound the Charles River
 
-f)
-```{r}
-median(Boston$ptratio)
-```
-The median pupil-teacher ratio is 19.05.
+f) The median pupil-teacher ratio is 19.05.
 
-g)
+g) 
 ```{r}
 subset(Boston, medv == min(Boston$medv))
-highlight <- function(x, value, col.value, col=NA, ...){
-   hst <- hist(x, ...)
-   idx <- findInterval(value, hst$breaks)
-   cols <- rep(col, length(hst$counts))
-   cols[idx] <- col.value
-   hist(x, col=cols, ...)
-}
-highlight(Boston$crim, Boston$crim[Boston$medv == min(Boston$medv)], "red")
-highlight(Boston$zn, Boston$zn[Boston$medv == min(Boston$medv)], "red")
-highlight(Boston$indus, Boston$indus[Boston$medv == min(Boston$medv)], "red")
-highlight(Boston$chas, Boston$chas[Boston$medv == min(Boston$medv)], "red")
-highlight(Boston$nox, Boston$nox[Boston$medv == min(Boston$medv)], "red")
-highlight(Boston$rm, Boston$rm[Boston$medv == min(Boston$medv)], "red")
-highlight(Boston$age, Boston$age[Boston$medv == min(Boston$medv)], "red")
-highlight(Boston$dis, Boston$dis[Boston$medv == min(Boston$medv)], "red")
-highlight(Boston$rad, Boston$rad[Boston$medv == min(Boston$medv)], "red")
-highlight(Boston$tax, Boston$tax[Boston$medv == min(Boston$medv)], "red")
-highlight(Boston$ptratio, Boston$ptratio[Boston$medv == min(Boston$medv)], "red")
-highlight(Boston$black, Boston$black[Boston$medv == min(Boston$medv)], "red")
-highlight(Boston$lstat, Boston$lstat[Boston$medv == min(Boston$medv)], "red")
 ```
-High crime, low proportion of large lots, large proportion of non-retail business, not bound by Charles River, larger nitrogen oxide concentration, oldest homes, closest to employment centers, most accessible to radial highways, higher property taxes, higher student-teacher ratios, higher proportion of blacks, and higher proportion of lower status. 
+High crime, low proportion of large lots, large proportion of non-retail business, not bound by Charles River, larger nitrogen oxide concentration, oldest homes, closest to employment centers, most accessible to radial highways, higher property taxes, higher student-teacher ratios, higher proportion of blacks, and higher proportion of lower status. Doesn't seem like an optimal place to live.
 
-```{r}
-nrow(subset(Boston, rm > 7))
-nrow(subset(Boston, rm > 8))
-summary(subset(Boston, rm > 8))
-summary(Boston)
-```
-There are 64 suburbs with more than 7 rooms per dwelling, and 13 suburbs with more than 8 rooms per dwelling. 
+h) There are 64 suburbs with more than 7 rooms per dwelling, and 13 suburbs with more than 8 rooms per dwelling. 
 
 The suburbs with more than 8 rooms per dwelling have less crime, higher median value, and lower lstat.
 
 ##Chapter 3, #15
+a) There is a statistically significant association with the response for all predictors except chas.
+```{r, echo = FALSE}
+par(mfrow = c(3, 4))
+
+lm.zn = lm(crim~zn)
+lm.indus = lm(crim~indus)
+lm.chas = lm(crim~chas)
+lm.nox = lm(crim~nox)
+lm.rm = lm(crim~rm)
+lm.age = lm(crim~age)
+lm.dis = lm(crim~dis)
+lm.rad = lm(crim~rad)
+summary(lm.rad)
+lm.tax = lm(crim~tax)
+lm.ptratio = lm(crim~ptratio)
+lm.black = lm(crim~black)
+lm.lstat = lm(crim~lstat)
+lm.medv = lm(crim~medv)
+
+par(mfrow = c(3, 4))
+plot(lm.medv, main = "crim vs. medv")
+plot(lm.lstat, main = "crim vs. lstat")
+plot(lm.chas, main = "crim vs. chas")
+```
+b) We can reject the null hypothesis for zn, dis, rad, black, and medv
+c) 
+```{r, echo=FALSE}
+lm.all = lm(crim~., data = Boston)
+par(mfrow = c(1, 1))
+univariate = c(coefficients(lm.zn)[2],
+      coefficients(lm.indus)[2],
+      coefficients(lm.chas)[2],
+      coefficients(lm.nox)[2],
+      coefficients(lm.rm)[2],
+      coefficients(lm.age)[2],
+      coefficients(lm.dis)[2],
+      coefficients(lm.rad)[2],
+      coefficients(lm.tax)[2],
+      coefficients(lm.ptratio)[2],
+      coefficients(lm.black)[2],
+      coefficients(lm.lstat)[2],
+      coefficients(lm.medv)[2])
+multiple = coefficients(lm.all)[2:14]
+plot(univariate, multiple)
+```
+In the univariate model, the coefficient for nox is 31, while in the multiple regression, the coefficient is -10.3. Most of the multiple regeression coefficients are around 0 and slightly negative.
+d) Yes, there is evidence of non-linear association. Specifically, we can reject the null hypothesis of a linear association for all predictors except black and chas.
+
+##Chapter 6, #9
+a)
+```{r}
+library(ISLR)
+attach(College)
+set.seed(2015)
+
+train = data.frame(College)
+test = data.frame(College)
+
+tr = sample(1:nrow(College), 0.7*nrow(College))
+
+train = train[tr,]
+test = test[-tr,] 
+```
+
+b) Test error: 2,050,905
+
+c) Test error: 2,105,986
+
+d) Test error: 2,031,401
+All coefficient estimates are nonzero except Books
+
+e) Test error: 4,034,479
+
+f) Test error: 2,079,952
+
+g) We can predict the number of college applications received with a fair amount of accuracy (R^2 > 0.9 for all except PCR). Excluding PCR, all the models are pretty similar in the resulting test errors.
+
+##Chapter 6, #11
+a)
+```{r, echo=FALSE}
+library(MASS)
+library(glmnet)
+
+set.seed(2015)
+
+x = model.matrix(crim ~ . - 1, data = Boston)
+y = Boston$crim
+cv.lasso = cv.glmnet(x, y, type.measure = "mse")
+plot(cv.lasso)
+coef(cv.lasso)
+
+sqrt(cv.lasso$cvm[cv.lasso$lambda == cv.lasso$lambda.1se])
+```
+Using lasso, we get a test MSE of 7.72, and the only coefficient that seems to matter is the one for rad (accessibility to radial highways). Using ridge regression, we get a test MSE of 7.84, and the most important variable seems to be nox (nitrogen oxides concentration).
+
+```{r, echo=FALSE}
+set.seed(2015)
+
+x = model.matrix(crim ~ . - 1, data = Boston)
+y = Boston$crim
+cv.ridge = cv.glmnet(x, y, type.measure = "mse", alpha = 0)
+plot(cv.ridge)
+
+coef(cv.ridge)
+
+sqrt(cv.ridge$cvm[cv.ridge$lambda == cv.ridge$lambda.1se])
+```
+
+b) The results from lasso and ridge are fairly similar and can be thought of as interchangeable in terms of this dataset. I would select lasso based on the relatively lower test error.
+
+c) The lasso model involves all the features in the data. However, the only variable that has an associated coefficient is rad, which means that if we wanted to, we could use this information to run a OLS with just rad against crim.
+
+##Chapter 8, #8
+a)
+```{r}
+library(ISLR)
+attach(Carseats)
+
+set.seed(2015)
+train = sample(dim(Carseats)[1], dim(Carseats)[1]*2/3)
+Carseats.train = Carseats[train, ]
+Carseats.test = Carseats[-train, ]
+```
+
+b)
+```{r, echo = FALSE}
+library(tree)
+tree.carseats = tree(Sales ~ ., data = Carseats.train)
+summary(tree.carseats)
+plot(tree.carseats)
+text(tree.carseats, pretty = 0)
+
+pred.carseats = predict(tree.carseats, Carseats.test)
+mean((Carseats.test$Sales - pred.carseats)^2)
+```
+We see that ShelveLoc is the first break in the tree, followed by price. The test MSE is 5.15.
+
+c) Using cross-validation, we see that the optimal level of tree complexity is 5. Using this, the test MSE was reduced to 5.00.
+
+d) Using bagging, we obtain a test MSE of 2.74. The importance() function shows us that the 3 most important variables in descending order are ShelveLoc, Price, and CompPrice.
+
+e) Using random forests, we obtain a test MSE of 3.12. The 3 most important variables in descending order are ShelveLoc, Price, and Advertising. Varying m leads to test MSEs in the range of 2.77 and 3.25.
+
+##Chapter 8, #11
+a)
+```{r}
+library(ISLR)
+train = 1:1000
+Caravan$Purchase = ifelse(Caravan$Purchase == "Yes", 1, 0)
+Caravan.train = Caravan[train,]
+Caravan.test = Caravan[-train,]
+```
+
+b)
+Based on our boosting model, the 3 most important predictors in descending order are PPERSAUT, MKOOPKLA, and MOPLHOOG.
+
+c)
+Using the boosting model, around 20% of the people predicted to make a purchase actually make one. The boosting results are significantly better than the results obtained from KNN and logistic regression.
+
+##Problem 1: Beauty Pays!
+1. 
+```{r, echo=FALSE}
+beauty <- read.csv("BeautyData.csv")
+attach(beauty)
+lm.beauty = lm(CourseEvals~., data = beauty)
+summary(lm.beauty)
+```
+After running a multiple linear regression, we see that holding all other variables constant, we see a positive correlation between beauty score and course evaluation score. Specifically, a 1 point increase in beauty score results in a 0.30 increase in course evalution score. Surprisingly, we see a negative coefficient for female.
+
+2. What Dr. Hamermesh means is that in most problems similar to this one, it is likely that there are several confounding variables. As always, correlation does not equal causation, and we can not say with certainty that the relationship between attractiveness and instructor ratings is not due to an underlying variable.
+
+##Problem 2: Housing Price Structure
+1.
+```{r, echo=FALSE}
+midcity <- read.csv("MidCity.csv")
+attach(midcity)
+midcity$Nbhd <- factor(midcity$Nbhd)
+midcity.clean <- midcity[,-c(1)]
+lm.brick = lm(Price~., data = midcity.clean)
+summary(lm.brick)
+```
+Based on the multiple linear regression, it seems that, everything else being equal, there is a premium for brick houses. We feel strongly certain about this considering that the 95% confidence interval for the coefficient of BrickYes does not include 0. In fact, the coefficient states that on average, a brick house costs $17,297 more than a non-brick house. 
+
+2. Yes, there seems to be a premium for houses in neighborhood 3. The 95% confidence interval for the coefficient does not include 0, and on average, houses in neighborhood 3 cost $20,681 more than houses in neighborhood 1 and $22,242 ($20,681 + $1,560) more than houses in neighborhood 2.
+
+3. 
+```{r, echo=FALSE}
+midcity.clean$nbhd3_brickyes <- ifelse(midcity.clean$Nbhd == 3 & midcity.clean$Brick == 'Yes', 1, 0)
+
+lm.brick_interaction <- lm(Price~., data = midcity.clean)
+summary(lm.brick_interaction)
+```
+Yes, the 95% confidence interval for the coefficient of the interaction term between brick houses and neighborhood 3 does not contain 0, meaning that there does seem to be an extra premium for brick houses in neighborhood 3.
+
+4. Based on the multiple linear regression, we see that the t value for the neighborhood 2 coefficient is -0.283, which means that the 95% confidence interval includes 0. Knowing this, it seems reasonable to combine neighborhoods 1 and 2 into a single "older" neighborhood.
+
+##Problem 3: What causes what??
+1. If you got data from a few different cities and ran the regression of "Crime" on "Police," you would not be able to discern if more crime is causing more cops in the street or if more cops in the street are causing more crime.
+
+2. The researchers from UPENN were able to use the fact that when the terror alert is at "orange," additional police officers are stationed at the National Mall. Because this terror alert has nothing to do with street crime, they could accurately assess the effect of these additional cops on street crime. The results in Table 2 show that in fact, crime does decrease with additional cops, and this is a significant effect.
+
+3. They had to control for METRO ridership because of the potential confounding variable of less people on the streets due to the high terror alert. Because the METRO ridership did not change, they concluded that there was similar availability of potential crime victims on both high-alert days and non-high-alert days.
+
+4. The model results outlined in Table 4 include an interaction variable between "high alert" and the dummy variable for D.C. District 1, and the conclusion is that the additional police had a significant effect on decreasing crime only in District 1 and not in other districts.
